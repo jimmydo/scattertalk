@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>Jelato</title>
+</head>
+<body>
+	<h1>Jelato</h1>
+	<h4>Navigation:</h4>
+	<ul>
+		<li><a href="/">Home</a></li>
+		{% if user.is_authenticated %}
+			<li><a href="/send-message">Compose</a></li>
+			<li><a href="/sent">Sent</a></li>
+			<li><a href="/contacts">?Contacts</a></li>
+			<li><a href="/subscriptions">?Subscriptions (People you follow)</a><li>
+			<li><a href="/{{ user.username }}">Public Profile</a></li>
+			Logged in as: {{ user.username }} | <a href="/logout">Log Out</a>
+		{% else %}
+			<a href="/login">Log in</a>
+		{% endif %}
+	</ul>
+	<hr />
+	<h4>Content:</h4>
+	{% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,22 @@
+{% extends 'jelato/base.html' %}
+
+{% block content %}
+<form action="/send-message/" method="post">
+	<ul>
+		<li>
+			<input type="checkbox" name="is_public" />Public
+		</li>
+		<li>
+			<label for="recipients_id">Recipients (if not public)</label>
+			<input type="text" name="recipients" value="" />
+		</li>
+		<li>
+			<label for="content_id">Message</label>
+			<textarea id="content_id" name="content" rows="10" cols="50"></textarea>
+		</li>
+		<li>
+			<input type="submit" value="Send" />
+		</li>
+	</ul>
+</form>
+{% endblock %}
