@@ -12,6 +12,7 @@ from django.template import RequestContext
 from jelato.models import ReceivedMessage
 from jelato.models import UserInfo
 
+from utils import summarize
 import uuid
 
 
@@ -23,7 +24,7 @@ def home(request):
             print 'User "%s" does not have a profile. Ignoring.' % request.user.username
             messages = []
         else:
-            messages = profile.received_messages.all()
+            messages = profile.received_messages.filter(reply_for='').order_by('-time_sent')
         subscription_posts = fetch_subscription_posts([s.uri for s in request.user.subscription_set.all()])
         return render_to_response(
             'jelato/home_auth.html',
@@ -201,7 +202,12 @@ def public_messages(request, username):
         mimetype='application/atom+xml')
 
 class PublicPost(object):
-    pass
+    def __init__(self, time_sent, content):
+        self.time_sent = time_sent
+        self.content = content
+        
+    def summary(self):
+        return summarize(self.content, 50)
 
 def fetch_subscription_posts(uri_list):
     import feedparser
@@ -209,8 +215,22 @@ def fetch_subscription_posts(uri_list):
     for uri in uri_list:
         d = feedparser.parse('http://' + uri + '/public-messages')
         for entry in d.entries:
-            post = PublicPost()
-            post.time_sent = entry['updated']
-            post.content = entry['summary']
+            post = PublicPost(entry['updated'], entry['summary'])
             posts.append(post)
     return posts
+    
+@login_required
+def message_view(request, message_guid):
+    profile = request.user.get_profile()
+    try:
+        message = profile.received_messages.get(guid=message_guid)
+    except ReceivedMessage.DoesNotExist:
+        print 'Message does not exist for the user'
+        return HttpResponseRedirect('/')
+    
+    message.is_read = True
+    message.save()
+    return render_to_response(
+        'jelato/message_view.html',
+        { 'message': message },
+        context_instance=RequestContext(request))

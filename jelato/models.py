@@ -1,8 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
+from utils import summarize
 
 GUID_LENGTH = 50
 CONTACT_URI_LENGTH=1024
+MAX_SUMMARY_LENGTH=50
 
 class ReceivedMessage(models.Model):
     guid = models.CharField(max_length=GUID_LENGTH, unique=True)
@@ -12,10 +14,14 @@ class ReceivedMessage(models.Model):
     sender_uri = models.CharField(max_length=CONTACT_URI_LENGTH)
     reply_for = models.CharField(max_length=GUID_LENGTH)
     is_public = models.BooleanField()
+    is_read = models.BooleanField(default=False)
     
     def __unicode__(self):
         return self.guid
-    
+        
+    def summary(self):
+        return summarize(self.content, MAX_SUMMARY_LENGTH)
+            
     class Admin:
         pass
     

@@ -3,15 +3,27 @@
 {% block content %}
 
 <h2>Your Inbox</h2>
+<form action='/' method="post">
+<input type="submit" value="Delete" />
+<input type="submit" value="Hide" />
 <ul>
 	{% for message in messages %}
-	<li>{{ message.content }}</li>
+	<li>
+		<a href="/messages/{{ message.guid }}">
+		{% if message.is_read %}
+			{{ message.summary }}
+		{% else %}
+			<strong>{{ message.summary }}</strong>
+		{% endif %}
+		</a>
+	</li>
 	{% endfor %}
 </ul>
+</form>
 <h2>New Stuff from Your Subscriptions</h2>
 <ul>
 	{% for post in subscription_posts %}
-	<li>{{ post.content }} - {{ post.time_sent }}</li>
+	<li>{{ post.summary }} - {{ post.time_sent }}</li>
 	{% endfor %}
 </ul>
 {% endblock %}
