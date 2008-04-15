@@ -2,13 +2,22 @@
 
 {% block content %}
 
-<h2>Profile for {{ user.username }}</h2>
+<h2>Profile for {{ username }}</h2>
 
 <h3>Public Messages</h3>
 <ul>
 	{% for message in messages %}
 	<li>
 		{{ message.content }}
+	</li>
+	{% endfor %}
+</ul>
+
+<h3>People that {{ username }} follows</h3>
+<ul>
+	{% for subscription in subscriptions %}
+	<li>
+		{{ subscription.uri }}
 	</li>
 	{% endfor %}
 </ul>

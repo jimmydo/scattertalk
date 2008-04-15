@@ -179,9 +179,14 @@ def contacts(request):
 def user_profile(request, username):
     user = User.objects.get(username=username)
     messages = user.sentmessage_set.filter(is_public=True)
+    subscriptions = user.subscription_set.all()
     return render_to_response(
         'jelato/profile.html',
-        { 'messages': messages },
+        {
+            'messages': messages,
+            'subscriptions': subscriptions,
+            'username': username
+        },
         context_instance=RequestContext(request))
 
 def public_messages(request, username):
