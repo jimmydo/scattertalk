@@ -10,7 +10,7 @@
 		{% if user.is_authenticated %}
 			<li><a href="/send-message">Compose</a></li>
 			<li><a href="/sent">Sent</a></li>
-			<li><a href="/contacts">?Contacts</a></li>
+			<li><a href="/contacts">Contacts</a></li>
 			<li><a href="/subscriptions">Subscriptions (People you follow)</a><li>
 			<li><a href="/{{ user.username }}">Public Profile</a></li>
 			Logged in as: {{ user.username }} | <a href="/logout">Log Out</a>

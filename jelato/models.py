@@ -50,6 +50,7 @@ class Subscription(models.Model):
         pass
     
 class Contact(models.Model):
+    user = models.ForeignKey(User)
     contact_uri = models.CharField(max_length=CONTACT_URI_LENGTH, unique=True)
     name = models.CharField(max_length=200)
     time_added = models.DateTimeField()

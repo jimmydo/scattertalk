@@ -1,0 +1,26 @@
+{% extends 'jelato/base.html' %}
+
+{% block content %}
+<form action="/contacts/" method="post">
+	<table>
+	<tr>
+		<td><label for="name_id">Name</label></td><td><input type="text" id="name_id" name="contact_name" value="" /></td>
+	</tr>
+	<tr>
+		<td><label for="uri_id">URI</label></td><td><input type="text" id="uri_id" name="contact_uri" value="" /></td>
+	</tr>
+	<tr>
+		<td colspan="2">
+			<input type="submit" value="Add" />
+		</td>
+	</tr>
+	</table>
+</form>
+<ul>
+	{% for contact in contacts %}
+	<li>
+		{{ contact.name }} - {{ contact.contact_uri }}
+	</li>
+	{% endfor %}
+</ul>
+{% endblock %}

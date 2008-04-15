@@ -24,7 +24,7 @@ def home(request):
             messages = []
         else:
             messages = profile.received_messages.all()
-            subscription_posts = fetch_subscription_posts([s.uri for s in request.user.subscription_set.all()])
+        subscription_posts = fetch_subscription_posts([s.uri for s in request.user.subscription_set.all()])
         return render_to_response(
             'jelato/home_auth.html',
             {
@@ -156,6 +156,24 @@ def subscriptions(request):
     return render_to_response(
         'jelato/subscriptions.html',
         { 'subscriptions': subscriptions },
+        context_instance=RequestContext(request))
+
+@login_required
+def contacts(request):
+    if request.method == 'POST':
+        contact_uri = request.POST['contact_uri']
+        name = request.POST['contact_name']
+        request.user.contact_set.create(
+            contact_uri=contact_uri,
+            name=name,
+            time_added=datetime.utcnow(),
+            comments='')
+        return HttpResponseRedirect('/contacts')
+
+    contacts = request.user.contact_set.all()
+    return render_to_response(
+        'jelato/contacts.html',
+        { 'contacts': contacts },
         context_instance=RequestContext(request))
 
 def user_profile(request, username):
