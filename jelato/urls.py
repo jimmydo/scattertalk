@@ -11,5 +11,6 @@ urlpatterns = patterns('',
     (r'^logout/$', 'django.contrib.auth.views.logout'),
     (r'^messages/(?P<message_guid>\w+)/$', 'jelato.views.message_view'),
     (r'^(?P<username>\w+)/$', 'jelato.views.user_profile'),
-    (r'^(?P<username>\w+)/public-messages$', 'jelato.views.public_messages'),
+    (r'^(?P<username>\w+)/public-messages/(?P<message_guid>\w+)$', 'jelato.views.public_message_view'),
+    (r'^(?P<username>\w+)/feeds/public-messages$', 'jelato.views.public_messages'),
 )

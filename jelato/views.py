@@ -192,32 +192,16 @@ def user_profile(request, username):
 
 def public_messages(request, username):
     public_messages = User.objects.get(username=username).sentmessage_set.filter(is_public=True).order_by('-time_sent')
+    server_and_port = request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT']
     return render_to_response(
         'jelato/public_messages.html',
         {
             'messages': public_messages,
-            'username': username
+            'username': username,
+            'server_and_port': server_and_port
         },
         context_instance=RequestContext(request),
         mimetype='application/atom+xml')
-
-class PublicPost(object):
-    def __init__(self, time_sent, content):
-        self.time_sent = time_sent
-        self.content = content
-        
-    def summary(self):
-        return summarize(self.content, 50)
-
-def fetch_subscription_posts(uri_list):
-    import feedparser
-    posts = []
-    for uri in uri_list:
-        d = feedparser.parse('http://' + uri + '/public-messages')
-        for entry in d.entries:
-            post = PublicPost(entry['updated'], entry['summary'])
-            posts.append(post)
-    return posts
     
 @login_required
 def message_view(request, message_guid):
@@ -234,3 +218,33 @@ def message_view(request, message_guid):
         'jelato/message_view.html',
         { 'message': message },
         context_instance=RequestContext(request))
+        
+def public_message_view(request, username, message_guid):
+    user = User.objects.get(username=username)
+    message = user.sentmessage_set.filter(is_public=True).get(guid=message_guid)
+    return render_to_response(
+        'jelato/public_message_view.html',
+        { 'message': message },
+        context_instance=RequestContext(request))
+        
+   
+   
+   
+class PublicPost(object):
+    def __init__(self, time_sent, content, link):
+        self.time_sent = time_sent
+        self.content = content
+        self.link = link
+        
+    def summary(self):
+        return summarize(self.content, 50)
+             
+def fetch_subscription_posts(uri_list):
+    import feedparser
+    posts = []
+    for uri in uri_list:
+        d = feedparser.parse('http://' + uri + '/feeds/public-messages')
+        for entry in d.entries:
+            post = PublicPost(entry['updated'], entry['summary'], entry['link'])
+            posts.append(post)
+    return posts

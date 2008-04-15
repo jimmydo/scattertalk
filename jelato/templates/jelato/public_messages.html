@@ -3,6 +3,7 @@
 	<title>{{ username }}'s Public Messages</title>
 	{% for message in messages %}
 	<entry>
+		<link href="http://{{ server_and_port }}/{{ username }}/public-messages/{{ message.guid }}"/>
 		<updated>{{ message.time_sent }}</updated>
 		<summary>{{ message.content }}</summary>
 	</entry>

@@ -1,0 +1,16 @@
+{% extends 'jelato/base.html' %}
+
+{% block content %}
+<h2>Public Message</h2>
+
+{{ message.content }}
+
+<p>
+{{ message.time_sent }}
+</p>
+
+<p>
+public comments would go here
+</p>
+
+{% endblock %}

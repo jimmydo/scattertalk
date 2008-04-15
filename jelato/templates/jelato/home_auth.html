@@ -23,7 +23,7 @@
 <h2>New Stuff from Your Subscriptions</h2>
 <ul>
 	{% for post in subscription_posts %}
-	<li>{{ post.summary }} - {{ post.time_sent }}</li>
+	<li><a href="{{ post.link }}">{{ post.summary }}</a> - {{ post.time_sent }}</li>
 	{% endfor %}
 </ul>
 {% endblock %}
