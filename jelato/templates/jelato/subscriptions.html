@@ -1,0 +1,15 @@
+{% extends 'jelato/base.html' %}
+
+{% block content %}
+<h2>Subscriptions (People You Follow)</h2>
+<form action="/subscriptions/" method="post">
+	<ul>
+		<li><input type="text" name="subscription_uri" /> <input type="submit" value="Add" /></li>
+	</ul>
+</form>
+<ul>
+	{% for subscription in subscriptions %}
+	<li>{{ subscription.uri }}</li>
+	{% endfor %}
+</ul>
+{% endblock %}

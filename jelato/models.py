@@ -41,6 +41,13 @@ class UserInfo(models.Model):
     
     class Admin:
         pass
+        
+class Subscription(models.Model):
+    user = models.ForeignKey(User)
+    uri = models.CharField(max_length=CONTACT_URI_LENGTH)
+    
+    class Admin:
+        pass
     
 class Contact(models.Model):
     contact_uri = models.CharField(max_length=CONTACT_URI_LENGTH, unique=True)

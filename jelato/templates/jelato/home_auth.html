@@ -8,4 +8,10 @@
 	<li>{{ message.content }}</li>
 	{% endfor %}
 </ul>
+<h2>New Stuff from Your Subscriptions</h2>
+<ul>
+	{% for post in subscription_posts %}
+	<li>{{ post.content }} - {{ post.time_sent }}</li>
+	{% endfor %}
+</ul>
 {% endblock %}

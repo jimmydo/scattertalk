@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+	<title>{{ username }}'s Public Messages</title>
+	{% for message in messages %}
+	<entry>
+		<updated>{{ message.time_sent }}</updated>
+		<summary>{{ message.content }}</summary>
+	</entry>
+	{% endfor %}
+</feed>
