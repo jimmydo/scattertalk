@@ -12,8 +12,8 @@ from django.template import RequestContext
 from jelato.models import ReceivedMessage
 from jelato.models import UserInfo
 
+import utils
 from utils import summarize
-from uuid import uuid4 as uuid
 
 
 def home(request):
@@ -70,11 +70,14 @@ def post_office(request):
             except UserInfo.DoesNotExist:
                 print 'User "%s" does not have profile. Creating one.' \
                     % recipient_username
-                profile = UserInfo.objects.create(
-                    user=user,
-                    public_key=uuid(), # FIXME: Temporarily using UUID
-                    location='placeholder location',
-                    comment='placeholder comment')
+                try:
+                    profile = UserInfo.objects.create(
+                        user=user,
+                        public_key=utils.uuid(), # FIXME: Temporarily using UUID
+                        location='placeholder location',
+                        comment='placeholder comment')
+                except Exception, e:
+                    print 'Could not create profile: ' + str(e)
                 print 'Created profile.'
             profile.received_messages.add(received_message)
             print 'Added received message to profile'
@@ -92,50 +95,7 @@ def send_message(request):
     recipients = request.POST['recipients'].split(';')
     is_public = request.POST.has_key('is_public')
     
-    uuid = uuid()
-    sent_message = request.user.sentmessage_set.create(
-        uuid=uuid,
-        content_type='placeholder',
-        content=content,
-        time_sent=datetime.utcnow(),
-        reply_for='',
-        is_public=is_public)
-    
-    if not is_public:
-        server_map = {}
-        
-        # Each recipient is in server:port/username format.
-        for recipient in recipients:
-            (server, username) = recipient.split('/')
-            if not server_map.has_key(server):
-                server_map[server] = []
-            server_map[server].append(username)
-            
-        for server in server_map.keys():
-            recip_list = ';'.join(server_map[server])
-            http = httplib2.Http()
-            url = 'http://' + server + '/post-office/';
-            
-            sender_uri = 'http://' + request.META['SERVER_NAME'] + \
-                    '/' + request.user.username
-            print 'Send to server %s:' % server
-            print ' UUID: ' + uuid
-            print ' Sender URI: ' + sender_uri
-            print ' Recipients: ' + recip_list
-            print ' Content: "%s"' % content
-            
-            headers = {
-                'Content-type': 'application/xml',
-                'X-Jelato-UUID': uuid,
-                'X-Jelato-Sender': sender_uri,
-                'X-Jelato-Reply-For': '',
-                'X-Jelato-Recipients': recip_list
-            }
-            (response, content) = http.request(
-                url,
-                'POST',
-                content,
-                headers=headers)
+    send_message_real(request.user, request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT'], '', content, recipients, is_public)
     return HttpResponseRedirect('/')
 
 @login_required
@@ -211,12 +171,52 @@ def message_view(request, message_uuid):
     except ReceivedMessage.DoesNotExist:
         print 'Message does not exist for the user'
         return HttpResponseRedirect('/')
+        
+    messages = get_thread(message)
     
     message.is_read = True
     message.save()
     return render_to_response(
         'jelato/message_view.html',
-        { 'message': message },
+        { 'messages': messages },
+        context_instance=RequestContext(request))
+        
+def get_thread(first_message):
+    from models import SentMessage
+    replies = ReceivedMessage.objects.filter(reply_for=first_message.uuid)
+    replies2 = SentMessage.objects.filter(reply_for=first_message.uuid)
+    both = []
+    for r in replies:
+        both.append(r)
+    for r in replies2:
+        both.append(r)
+    if len(both) == 0:
+        return [first_message]
+    
+    all_replies = [first_message]
+    for reply in both:
+        all_replies.extend(get_thread(reply))
+        
+    return all_replies
+        
+@login_required
+def message_reply(request, message_uuid):
+    orig_message = ReceivedMessage.objects.get(uuid=message_uuid)
+    if request.method == 'POST':
+        reply_content = request.POST['reply_content']
+        send_message_real(request.user, request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT'], message_uuid, reply_content, [orig_message.sender_uri[7:]], False)
+    
+    return render_to_response(
+        'jelato/message_reply.html',
+        {
+            'orig_message': orig_message
+        },
+        context_instance=RequestContext(request))
+    
+@login_required
+def message_forward(request, message_uuid):
+    return render_to_response(
+        'jelato/message_forward.html',
         context_instance=RequestContext(request))
         
 def public_message_view(request, username, message_uuid):
@@ -226,9 +226,6 @@ def public_message_view(request, username, message_uuid):
         'jelato/public_message_view.html',
         { 'message': message },
         context_instance=RequestContext(request))
-        
-   
-   
    
 class PublicPost(object):
     def __init__(self, time_sent, content, link):
@@ -248,3 +245,52 @@ def fetch_subscription_posts(uri_list):
             post = PublicPost(entry['updated'], entry['summary'], entry['link'])
             posts.append(post)
     return posts
+    
+def send_message_real(cur_user, server_port, reply_for_uuid, content, recipients, is_public):
+    uuid = utils.uuid()
+    print str(type(uuid))
+    sent_message = cur_user.sentmessage_set.create(
+        uuid=uuid,
+        content_type='placeholder',
+        content=content,
+        time_sent=datetime.utcnow(),
+        reply_for='',
+        is_public=is_public)
+    
+    if not is_public:
+        server_map = {}
+        
+        # Each recipient is in server:port/username format.
+        for recipient in recipients:
+            print 'Recipient: ' + recipient
+            (server, username) = recipient.split('/')
+            if not server_map.has_key(server):
+                server_map[server] = []
+            server_map[server].append(username)
+            
+        for server in server_map.keys():
+            recip_list = ';'.join(server_map[server])
+            http = httplib2.Http()
+            url = 'http://' + server + '/post-office/';
+            
+            sender_uri = 'http://' + server_port + \
+                    '/' + cur_user.username
+            print 'Send to server %s:' % server
+            print ' UUID: ' + uuid
+            print ' Sender URI: ' + sender_uri
+            print ' Recipients: ' + recip_list
+            print ' Content: "%s"' % content
+            
+            headers = {
+                'Content-type': 'application/xml',
+                'X-Jelato-UUID': uuid,
+                'X-Jelato-Sender': sender_uri,
+                'X-Jelato-Reply-For': reply_for_uuid,
+                'X-Jelato-Recipients': recip_list
+            }
+            (response, content) = http.request(
+                url,
+                'POST',
+                content,
+                headers=headers)
+

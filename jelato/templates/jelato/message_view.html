@@ -3,9 +3,16 @@
 {% block content %}
 
 <h2>Message</h2>
+
+{% for message in messages %}
 {{ message.content }}
 <p>
-{{ message.time_sent }}
+{{ message.time_sent }}<br />
+from: {{ message.sender_uri }}<br />
+<a href="/messages/{{ message.uuid }}/reply">Reply</a>
+<a href="/messages/{{ message.uuid }}/forward">Forward</a>
 </p>
+<hr />
+{% endfor %}
 
 {% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'jelato/base.html' %}
+
+{% block content %}
+<form action="/messages/{{ orig_message.uuid }}/reply" method="post">
+	<textarea name="reply_content"></textarea>
+	<input type="submit" value="Send" />
+</form>
+{% endblock %}

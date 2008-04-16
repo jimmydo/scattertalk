@@ -1,0 +1,8 @@
+{% extends 'jelato/base.html' %}
+
+{% block content %}
+<form action="/messages/{{ orig_message.uuid }}/forward" method="post">
+	Recipients: <input type="text" value="" />
+	<input type="submit" value="Send" />
+</form>
+{% endblock %}
