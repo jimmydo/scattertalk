@@ -13,7 +13,7 @@ from jelato.models import ReceivedMessage
 from jelato.models import UserInfo
 
 from utils import summarize
-import uuid
+from uuid import uuid4 as uuid
 
 
 def home(request):
@@ -72,7 +72,7 @@ def post_office(request):
                     % recipient_username
                 profile = UserInfo.objects.create(
                     user=user,
-                    public_key=uuid.uuid(), # FIXME: Temporarily using GUID
+                    public_key=uuid(), # FIXME: Temporarily using GUID
                     location='placeholder location',
                     comment='placeholder comment')
                 print 'Created profile.'
@@ -92,7 +92,7 @@ def send_message(request):
     recipients = request.POST['recipients'].split(';')
     is_public = request.POST.has_key('is_public')
     
-    guid = uuid.uuid()
+    guid = uuid()
     sent_message = request.user.sentmessage_set.create(
         guid=guid,
         content_type='placeholder',
