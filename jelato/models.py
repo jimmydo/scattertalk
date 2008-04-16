@@ -2,22 +2,22 @@ from django.db import models
 from django.contrib.auth.models import User
 from utils import summarize
 
-GUID_LENGTH = 50
+UUID_LENGTH = 50
 CONTACT_URI_LENGTH=1024
 MAX_SUMMARY_LENGTH=50
 
 class ReceivedMessage(models.Model):
-    guid = models.CharField(max_length=GUID_LENGTH, unique=True)
+    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
     content = models.TextField() # might need to allow binary? probably not
     time_sent = models.DateTimeField()
     sender_uri = models.CharField(max_length=CONTACT_URI_LENGTH)
-    reply_for = models.CharField(max_length=GUID_LENGTH)
+    reply_for = models.CharField(max_length=UUID_LENGTH)
     is_public = models.BooleanField()
     is_read = models.BooleanField(default=False)
     
     def __unicode__(self):
-        return self.guid
+        return self.uuid
         
     def summary(self):
         return summarize(self.content, MAX_SUMMARY_LENGTH)
@@ -27,11 +27,11 @@ class ReceivedMessage(models.Model):
     
 class SentMessage(models.Model):
     user = models.ForeignKey(User)
-    guid = models.CharField(max_length=GUID_LENGTH, unique=True)
+    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
     content = models.TextField()
     time_sent = models.DateTimeField()
-    reply_for = models.CharField(max_length=GUID_LENGTH)
+    reply_for = models.CharField(max_length=UUID_LENGTH)
     is_public = models.BooleanField()
     
     class Admin:

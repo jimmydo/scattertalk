@@ -9,7 +9,7 @@
 <ul>
 	{% for message in messages %}
 	<li>
-		<a href="/messages/{{ message.guid }}">
+		<a href="/messages/{{ message.uuid }}">
 		{% if message.is_read %}
 			{{ message.summary }}
 		{% else %}

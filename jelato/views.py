@@ -36,7 +36,7 @@ def home(request):
     return render_to_response('jelato/home.html')
 
 def post_office(request):
-    guid = request.META['HTTP_X_JELATO_GUID']
+    uuid = request.META['HTTP_X_JELATO_UUID']
     content_type = request.META['CONTENT_TYPE']
     sender_uri = request.META['HTTP_X_JELATO_SENDER']
     reply_for = request.META['HTTP_X_JELATO_REPLY_FOR']
@@ -45,7 +45,7 @@ def post_office(request):
     
     print 'Post office received this message:'
     print ' Recipients: ' + str(recipients)
-    print ' GUID: ' + guid
+    print ' UUID: ' + uuid
     print ' Content type: ' + content_type
     print ' Sender URI: ' + sender_uri
     print ' Reply for: ' + reply_for
@@ -53,7 +53,7 @@ def post_office(request):
     
     received_message = ReceivedMessage.objects.create(
         content=content,
-        guid=guid,
+        uuid=uuid,
         content_type=content_type,
         sender_uri=sender_uri,
         time_sent=datetime.utcnow(),
@@ -72,7 +72,7 @@ def post_office(request):
                     % recipient_username
                 profile = UserInfo.objects.create(
                     user=user,
-                    public_key=uuid(), # FIXME: Temporarily using GUID
+                    public_key=uuid(), # FIXME: Temporarily using UUID
                     location='placeholder location',
                     comment='placeholder comment')
                 print 'Created profile.'
@@ -92,9 +92,9 @@ def send_message(request):
     recipients = request.POST['recipients'].split(';')
     is_public = request.POST.has_key('is_public')
     
-    guid = uuid()
+    uuid = uuid()
     sent_message = request.user.sentmessage_set.create(
-        guid=guid,
+        uuid=uuid,
         content_type='placeholder',
         content=content,
         time_sent=datetime.utcnow(),
@@ -119,14 +119,14 @@ def send_message(request):
             sender_uri = 'http://' + request.META['SERVER_NAME'] + \
                     '/' + request.user.username
             print 'Send to server %s:' % server
-            print ' GUID: ' + guid
+            print ' UUID: ' + uuid
             print ' Sender URI: ' + sender_uri
             print ' Recipients: ' + recip_list
             print ' Content: "%s"' % content
             
             headers = {
                 'Content-type': 'application/xml',
-                'X-Jelato-GUID': guid,
+                'X-Jelato-UUID': uuid,
                 'X-Jelato-Sender': sender_uri,
                 'X-Jelato-Reply-For': '',
                 'X-Jelato-Recipients': recip_list
@@ -204,10 +204,10 @@ def public_messages(request, username):
         mimetype='application/atom+xml')
     
 @login_required
-def message_view(request, message_guid):
+def message_view(request, message_uuid):
     profile = request.user.get_profile()
     try:
-        message = profile.received_messages.get(guid=message_guid)
+        message = profile.received_messages.get(uuid=message_uuid)
     except ReceivedMessage.DoesNotExist:
         print 'Message does not exist for the user'
         return HttpResponseRedirect('/')
@@ -219,9 +219,9 @@ def message_view(request, message_guid):
         { 'message': message },
         context_instance=RequestContext(request))
         
-def public_message_view(request, username, message_guid):
+def public_message_view(request, username, message_uuid):
     user = User.objects.get(username=username)
-    message = user.sentmessage_set.filter(is_public=True).get(guid=message_guid)
+    message = user.sentmessage_set.filter(is_public=True).get(uuid=message_uuid)
     return render_to_response(
         'jelato/public_message_view.html',
         { 'message': message },
