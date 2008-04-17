@@ -6,6 +6,50 @@ UUID_LENGTH = 50
 CONTACT_URI_LENGTH=1024
 MAX_SUMMARY_LENGTH=50
 
+# {{{ Single instance store for messages
+
+class Message(models.Model):
+    """
+    Message should each be resources, e.g. http://foobar/data/1ef23...
+
+    (Not all may be reachable for privacy reasons. We will use acls or
+    capability methods to enforce this)
+
+    """
+    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
+    content_type = models.CharField(max_length=100)
+    content = models.TextField()
+    ctime = models.DateTimeField(auto_now_add = True)
+    mtime = models.DateTimeField(auto_now = True)
+
+    def __unicode__(self):
+        return self.uuid
+        
+    def summary(self):
+        return summarize(self.content, MAX_SUMMARY_LENGTH)
+            
+    class Admin:
+        pass
+
+# }}}
+
+# {{{ underlying model(s) for transmitted metadata
+class Envelope(models.Model):
+    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
+    froms = models.TextField()
+    tos = models.TextField()
+    ccs = models.TextField()
+    wrapped_envelope = models.ForeignKey('self', null = True)
+    wrapped_message = models.ForeignKey(Message, null = True)
+# }}}
+
+# {{{ metadata that is nominally not retransmitted
+
+class EnvelopeStatus(models.Model):
+    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
+    received = models.DateTimeField(auto_now_add = True)
+
+# }}}
 class ReceivedMessage(models.Model):
     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
