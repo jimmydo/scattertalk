@@ -47,6 +47,12 @@ class Envelope(models.Model):
     tos = models.TextField()
     ccs = models.TextField()
     carries = models.CharField(max_length=UUID_LENGTH)
+
+    # We may want to doubly link this information, or otherwise make
+    # concessions for performance.
+
+    replies_to = models.CharField(max_length=UUID_LENGTH)
+
 # }}}
 
 # {{{ metadata that is nominally not retransmitted
