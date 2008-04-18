@@ -38,12 +38,15 @@ class Datum(models.Model):
 
 # {{{ underlying model(s) for transmitted metadata
 class Envelope(models.Model):
-    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
+    # these require reification: connections to other users (i.e. URI
+    # and human-readable names) also could exist wrapped inside Datum.
+
+    # One that that is for sure is we don't support aggregates.
+
     froms = models.TextField()
     tos = models.TextField()
     ccs = models.TextField()
-    wrapped_envelope = models.ForeignKey('self', null = True)
-    wrapped_message = models.ForeignKey(Message, null = True)
+    carries = models.CharField(max_length=UUID_LENGTH)
 # }}}
 
 # {{{ metadata that is nominally not retransmitted
