@@ -55,13 +55,6 @@ class Envelope(models.Model):
 
 # }}}
 
-# {{{ metadata that is nominally not retransmitted
-
-class EnvelopeStatus(models.Model):
-    uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
-    received = models.DateTimeField(auto_now_add = True)
-
-# }}}
 class ReceivedMessage(models.Model):
     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
