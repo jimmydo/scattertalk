@@ -3,19 +3,18 @@
 {% block content %}
 
 <h2>Message</h2>
-
+<ol class="conversation">
 {% for message in messages %}
-<pre>
-{{ message.content }}
-<pre>
-<p>
-{{ message.time_sent }}
-<br />
-from: {{ message.sender_uri }}<br />
-<a href="/messages/{{ message.uuid }}/reply">Reply</a>
-<a href="/messages/{{ message.uuid }}/forward">Forward</a>
-</p>
-<hr />
+<li>
+	<pre>{{ message.content }}</pre>
+	<p>
+	{{ message.time_sent }}
+	<br />
+	from: {{ message.sender_uri }}<br />
+	<a href="/messages/{{ message.uuid }}/reply">Reply</a>
+	<a href="/messages/{{ message.uuid }}/forward">Forward</a>
+	</p>
+</li>
 {% endfor %}
-
+</ol>
 {% endblock %}

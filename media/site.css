@@ -74,9 +74,7 @@ a:hover {
 }
 
 
-
-
-/************** Home auth *******************/
+/*************** Home Auth ***************/
 #message-actions li {
 	display: inline;
 }
@@ -87,4 +85,11 @@ a:hover {
 
 #message-list li {
 	border-bottom: 1px solid lightgray;
+}
+
+
+/*************** Message View ***************/
+.conversation li {
+	border-bottom: 1px solid gray;
+	padding: 1em;
 }
