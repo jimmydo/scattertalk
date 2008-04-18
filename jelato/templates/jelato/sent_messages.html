@@ -5,7 +5,7 @@
 <h2>Sent Messages</h2>
 <ul>
 	{% for message in messages %}
-	<li>{{ message.content }}</li>
+	<li><a href="/messages/{{ message.uuid }}">{{ message.content }}</a></li>
 	{% endfor %}
 </ul>
 {% endblock %}

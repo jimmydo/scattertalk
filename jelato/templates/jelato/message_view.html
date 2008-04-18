@@ -5,9 +5,12 @@
 <h2>Message</h2>
 
 {% for message in messages %}
+<pre>
 {{ message.content }}
+<pre>
 <p>
-{{ message.time_sent }}<br />
+{{ message.time_sent }}
+<br />
 from: {{ message.sender_uri }}<br />
 <a href="/messages/{{ message.uuid }}/reply">Reply</a>
 <a href="/messages/{{ message.uuid }}/forward">Forward</a>

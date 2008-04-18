@@ -1,22 +1,22 @@
 {% extends 'jelato/base.html' %}
 
 {% block content %}
-<form action="/send-message/" method="post">
-	<ul>
-		<li>
-			<input type="checkbox" name="is_public" />Public
-		</li>
-		<li>
-			<label for="recipients_id">Recipients (if not public)</label>
-			<input type="text" name="recipients" value="" />
-		</li>
-		<li>
-			<label for="content_id">Message</label>
-			<textarea id="content_id" name="content" rows="10" cols="50"></textarea>
-		</li>
-		<li>
-			<input type="submit" value="Send" />
-		</li>
-	</ul>
+{% if is_public %}
+<h2>Send to Public</h2>
+<a href="/send-message-private">Send to individuals instead</a>
+{% else %}
+<h2>Send to Individuals</h2>
+<a href="/send-message-public">Send to public instead</a>
+{% endif %}
+<form action="/send-message-{% if is_public %}public{% else %}private{% endif %}/" method="post">
+	<dl>
+		{% if not is_public %}
+		<dt><label for="recipients_id">Recipients</label></dt>
+		<dd><textarea name="recipients" rows="3" cols="70"></textarea></dd>
+		{% endif %}
+		<dt><label for="content_id">Message</label></dt>
+		<dd><textarea id="content_id" name="content" rows="10" cols="70"></textarea></dd>
+	</dl>
+	<div><input type="submit" value="Send" /></div>
 </form>
 {% endblock %}
