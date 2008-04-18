@@ -1,0 +1,70 @@
+body {
+	font-family: sans;
+	text-align: left;
+	
+}
+
+#main {
+	border: 1px solid gray;
+	margin-top: 0.5em;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 1em;
+	
+	min-width: 700px;
+	width: 75%;
+}
+
+#main:after {
+	content: ".";
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+
+#header {
+	padding-bottom: 0.5em;
+	position: relative;
+	border-bottom: 1px solid #778899;
+}
+
+#header .signin-status {
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+#nav {
+	float: left;
+	margin-top: 0.5em;
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+	border-right: 1px solid gray;
+	width: 8em;
+}
+
+#content {
+	float: left;
+	padding: 1em;
+}
+
+
+
+h1 {
+	font-weight: bold;
+}
+
+h2 {
+	font-weight: bold;
+	font-size: 131%;
+}
+
+a {
+	color: blue;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}

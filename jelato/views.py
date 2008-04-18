@@ -33,7 +33,9 @@ def home(request):
                 'subscription_posts': subscription_posts
             },
             context_instance=RequestContext(request))
-    return render_to_response('jelato/home.html')
+    return render_to_response(
+        'jelato/home.html',
+        context_instance=RequestContext(request))
 
 def post_office(request):
     uuid = request.META['HTTP_X_JELATO_UUID']
@@ -154,7 +156,7 @@ def public_messages(request, username):
     public_messages = User.objects.get(username=username).sentmessage_set.filter(is_public=True).order_by('-time_sent')
     server_and_port = request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT']
     return render_to_response(
-        'jelato/public_messages.html',
+        'jelato/feeds/public_messages.html',
         {
             'messages': public_messages,
             'username': username,

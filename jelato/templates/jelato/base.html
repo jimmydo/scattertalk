@@ -1,25 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-<title>Jelato</title>
+	<title>Jelato</title>
+	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}yui-2.5.1/build/reset-fonts-grids/reset-fonts-grids.css" />
+	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}site.css" />
+	<script type="text/javascript" src="{{ MEDIA_URL }}jquery-1.2.3.js"></script>
 </head>
-<body>
-	<h1>Jelato</h1>
-	<h4>Navigation:</h4>
-	<ul>
+<body id="main">
+	<div id="header">
+		<h1>scattertalk</h1>
+		<div class="signin-status">
+		{% if user.is_authenticated %}
+			{{ user.username }} | <a href="/logout">Log Out</a>
+		{% else %}
+			<a href="/login">Log in</a>
+		{% endif %}
+		</div>
+	</div>
+	<ul id="nav">
 		<li><a href="/">Home</a></li>
 		{% if user.is_authenticated %}
 			<li><a href="/send-message">Compose</a></li>
 			<li><a href="/sent">Sent</a></li>
+			<li><a href="/all">All</a></li>
+			<li><a href="/subscriptions">Subscriptions</a><li>
 			<li><a href="/contacts">Contacts</a></li>
-			<li><a href="/subscriptions">Subscriptions (People you follow)</a><li>
 			<li><a href="/{{ user.username }}">Public Profile</a></li>
-			Logged in as: {{ user.username }} | <a href="/logout">Log Out</a>
-		{% else %}
-			<a href="/login">Log in</a>
+			<li>Tags</li>
 		{% endif %}
 	</ul>
-	<hr />
-	<h4>Content:</h4>
-	{% block content %}{% endblock %}
+	<div id="content">
+		{% block content %}{% endblock %}
+	</div>
 </body>
 </html>
