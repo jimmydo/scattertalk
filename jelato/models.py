@@ -8,13 +8,15 @@ MAX_SUMMARY_LENGTH=50
 
 # {{{ Single instance store for messages
 
-class Message(models.Model):
+class Datum(models.Model):
     """
-    Message should each be resources, e.g. http://foobar/data/1ef23...
+    Datum should each be resources, e.g. http://foobar/data/1ef23...
 
     (Not all may be reachable for privacy reasons. We will use acls or
     capability methods to enforce this)
 
+    The content may contain, say, an envelope, which itself may refer
+    to other Datum.
     """
     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
