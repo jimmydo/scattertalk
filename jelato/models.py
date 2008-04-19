@@ -55,6 +55,8 @@ class Envelope(models.Model):
 
 # }}}
 
+# {{{ uncategorized
+
 class ReceivedMessage(models.Model):
     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
@@ -120,3 +122,4 @@ class Group(models.Model):
     
     class Admin:
         pass
+# }}}
