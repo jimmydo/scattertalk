@@ -55,26 +55,25 @@ class Envelope(models.Model):
 
 # }}}
 
-# {{{ Tag support
+# {{{ To handle grouping of Datum
 
-class Tag(models.Model):
+class Group(models.Model):
     """
-    A tag, which for now is simply a small chunk of text.
+    A group is a unique identifier for any collection of Datum
     """
     in_datum = models.ForeignKey(Datum, unique=True)
-    name = models.CharField(max_length=50, unique=True)
 
-class TagApply(models.Model):
+class GroupApply(models.Model):
     """
-    The application of a Tag to a Datum.
+    The application of a Group to a Datum.
 
-    A tag can be applied to other tags or itself. Every Datum is a
-    legal target.
+    Every Datum is a legal target, which implies that groups of groups
+    and groups of group applications are legal constructs.
     """
     in_datum = models.ForeignKey(Datum, unique=True)
 
     # to_datum: the thing being tagged
-    to_datum = models.ForeignKey(Datum, related_name='applied_tags')
+    to_datum = models.ForeignKey(Datum, related_name='applied_groups')
     tag = models.ForeignKey(Tag)
 
 # }}}
