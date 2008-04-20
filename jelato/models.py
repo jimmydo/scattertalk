@@ -55,6 +55,17 @@ class Envelope(models.Model):
 
 # }}}
 
+# {{{ Tag support
+
+class Tag(models.Model):
+    """
+    A tag, which for now is simply a small chunk of text.
+    """
+    in_datum = models.ForeignKey(Datum, unique=True)
+    name = models.CharField(max_length=50, unique=True)
+
+# }}}
+
 # {{{ uncategorized
 
 class ReceivedMessage(models.Model):
