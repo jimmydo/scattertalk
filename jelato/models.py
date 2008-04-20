@@ -64,6 +64,19 @@ class Tag(models.Model):
     in_datum = models.ForeignKey(Datum, unique=True)
     name = models.CharField(max_length=50, unique=True)
 
+class TagApply(models.Model):
+    """
+    The application of a Tag to a Datum.
+
+    A tag can be applied to other tags or itself. Every Datum is a
+    legal target.
+    """
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    # to_datum: the thing being tagged
+    to_datum = models.ForeignKey(Datum, related_name='applied_tags')
+    tag = models.ForeignKey(Tag)
+
 # }}}
 
 # {{{ uncategorized
