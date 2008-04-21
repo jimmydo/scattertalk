@@ -44,6 +44,9 @@ class Group(models.Model):
     """
     in_datum = models.ForeignKey(Datum, unique=True)
 
+    class Admin:
+        pass
+
 class GroupApply(models.Model):
     """
     The application of a Group to a Datum.
@@ -56,6 +59,9 @@ class GroupApply(models.Model):
     # to_datum: the thing included into the group
     to_datum = models.ForeignKey(Datum, related_name='applied_groups')
     group = models.ForeignKey(Group)
+
+    class Admin:
+        pass
 
 # }}}
 
@@ -73,11 +79,17 @@ class Envelope(models.Model):
 
     replies_to = models.ForeignKey(Group, related_name='replyto_set')
 
+    class Admin:
+        pass
+
 class Tag(models.Model):
     in_datum = models.ForeignKey(Datum, unique=True)
 
     name = models.CharField(max_length = 30)
     group = models.ForeignKey(Group)
+
+    class Admin:
+        pass
 
 class Contact(models.Model):
     in_datum = models.ForeignKey(Datum, unique=True)
