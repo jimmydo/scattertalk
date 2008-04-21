@@ -73,6 +73,12 @@ class Envelope(models.Model):
 
     replies_to = models.ForeignKey(Group, related_name='replyto_set')
 
+class Tag(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    name = models.CharField(max_length = 30)
+    group = models.ForeignKey(Group)
+
 # }}}
 
 # {{{ uncategorized
