@@ -24,17 +24,42 @@ class Datum(models.Model):
     content = models.TextField()
     ctime = models.DateTimeField(auto_now_add = True)
     mtime = models.DateTimeField(auto_now = True)
-    replies_to = models.CharField(max_length=UUID_LENGTH)
-    
-    # TEMP: should be part of metadata
-    is_public = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.uuid
-        
+
     def summary(self):
         return summarize(self.content, MAX_SUMMARY_LENGTH)
-            
+
+    class Admin:
+        pass
+
+# }}}
+
+# {{{ To handle grouping of Datum
+
+class Group(models.Model):
+    """
+    A group is a unique identifier for any collection of Datum
+    """
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    class Admin:
+        pass
+
+class GroupApply(models.Model):
+    """
+    The application of a Group to a Datum.
+
+    Every Datum is a legal target, which implies that groups of groups
+    and groups of group applications are legal constructs.
+    """
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    # to_datum: the thing included into the group
+    to_datum = models.ForeignKey(Datum, related_name='applied_groups')
+    group = models.ForeignKey(Group)
+
     class Admin:
         pass
 
@@ -42,61 +67,140 @@ class Datum(models.Model):
 
 # {{{ underlying model(s) for transmitted metadata
 class Envelope(models.Model):
-    # these require reification: connections to other users (i.e. URI
-    # and human-readable names) also could exist wrapped inside Datum.
+    in_datum = models.ForeignKey(Datum, unique=True)
 
-    # One that that is for sure is we don't support aggregates.
-
-    froms = models.TextField()
-    tos = models.TextField()
-    ccs = models.TextField()
-    bccs = models.TextField()
-    carries = models.ForeignKey(Datum)
-    user = models.ForeignKey(User)
-    ctime = models.DateTimeField(auto_now_add = True)
-    is_read = models.BooleanField(default=False)
+    froms = models.ForeignKey(Group, related_name='from_set')
+    tos = models.ForeignKey(Group, related_name='to_set')
+    ccs = models.ForeignKey(Group, related_name='cc_set')
+    carries = models.ForeignKey(Datum, related_name='carries')
 
     # We may want to doubly link this information, or otherwise make
     # concessions for performance.
 
-    #replies_to = models.CharField(max_length=UUID_LENGTH)
-    
+    replies_to = models.ForeignKey(Group, related_name='replyto_set')
+
+    class Admin:
+        pass
+
+class Tag(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    name = models.CharField(max_length = 30)
+    group = models.ForeignKey(Group)
+
+    class Admin:
+        pass
+
+class Contact(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    user = models.ForeignKey(User)
+    contact_uri = models.CharField(max_length=CONTACT_URI_LENGTH, unique=True)
+    name = models.CharField(max_length=200)
+    comments = models.TextField()
+
+    class Admin:
+        pass
+
+class Subscription(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+    user = models.ForeignKey(User)
+    uri = models.CharField(max_length=CONTACT_URI_LENGTH)
+
     class Admin:
         pass
 
 # }}}
-    
+
+# {{{ less-frequently transmitted metadata
+
 class UserInfo(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
     user = models.ForeignKey(User, unique=True)
     public_key = models.CharField(max_length=5000, unique=True)
     location = models.CharField(max_length=200)
     comment = models.CharField(max_length=500)
-    #received_messages = models.ManyToManyField(ReceivedMessage)
     # others: interests, birthday, picture
-    
-    class Admin:
-        pass
-        
-class Subscription(models.Model):
-    user = models.ForeignKey(User)
-    uri = models.CharField(max_length=CONTACT_URI_LENGTH)
-    
-    class Admin:
-        pass
-    
-class Contact(models.Model):
-    user = models.ForeignKey(User)
-    contact_uri = models.CharField(max_length=CONTACT_URI_LENGTH, unique=True)
-    name = models.CharField(max_length=200)
-    time_added = models.DateTimeField()
-    comments = models.TextField()
-    
+
     class Admin:
         pass
 
-class Group(models.Model):
-    name = models.CharField(max_length=200, unique=True)
-    contacts = models.ManyToManyField(Contact)
-    
-    class Admin:
-        pass
+class EnvelopeMeta(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    envelope = models.ForeignKey(Envelope)
+
+    user = models.ForeignKey(User)
+    is_read = models.BooleanField(default=False)
+# }}}
+
+# {{{ uncategorized
+
+# class ReceivedMessage(models.Model):
+#     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
+#     content_type = models.CharField(max_length=100)
+#     content = models.TextField() # might need to allow binary? probably not
+#     time_sent = models.DateTimeField()
+#     sender_uri = models.CharField(max_length=CONTACT_URI_LENGTH)
+#     reply_for = models.CharField(max_length=UUID_LENGTH)
+#     is_public = models.BooleanField()
+#     is_read = models.BooleanField(default=False)
+
+#     def __unicode__(self):
+#         return self.uuid
+
+#     def summary(self):
+#         return summarize(self.content, MAX_SUMMARY_LENGTH)
+
+#     class Admin:
+#         pass
+
+# class SentMessage(models.Model):
+#     user = models.ForeignKey(User)
+#     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
+#     content_type = models.CharField(max_length=100)
+#     content = models.TextField()
+#     time_sent = models.DateTimeField()
+#     reply_for = models.CharField(max_length=UUID_LENGTH)
+#     is_public = models.BooleanField()
+
+#     class Admin:
+#         pass
+
+# class UserInfo(models.Model):
+#     user = models.ForeignKey(User, unique=True)
+#     public_key = models.CharField(max_length=5000, unique=True)
+#     location = models.CharField(max_length=200)
+#     comment = models.CharField(max_length=500)
+#     received_messages = models.ManyToManyField(ReceivedMessage)
+#     # others: interests, birthday, picture
+
+#     class Admin:
+#         pass
+
+# class Subscription(models.Model):
+#     user = models.ForeignKey(User)
+#     uri = models.CharField(max_length=CONTACT_URI_LENGTH)
+
+#     class Admin:
+#         pass
+
+# class Contact(models.Model):
+#     user = models.ForeignKey(User)
+#     contact_uri = models.CharField(max_length=CONTACT_URI_LENGTH, unique=True)
+#     name = models.CharField(max_length=200)
+#     time_added = models.DateTimeField()
+#     comments = models.TextField()
+
+#     class Admin:
+#         pass
+
+# class Group(models.Model):
+#     name = models.CharField(max_length=200, unique=True)
+#     contacts = models.ManyToManyField(Contact)
+
+#     class Admin:
+#         pass
+
+# }}}
