@@ -79,6 +79,17 @@ class Tag(models.Model):
     name = models.CharField(max_length = 30)
     group = models.ForeignKey(Group)
 
+class Contact(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    user = models.ForeignKey(User)
+    contact_uri = models.CharField(max_length=CONTACT_URI_LENGTH, unique=True)
+    name = models.CharField(max_length=200)
+    comments = models.TextField()
+
+    class Admin:
+        pass
+
 # }}}
 
 # {{{ uncategorized
