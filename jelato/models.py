@@ -112,6 +112,22 @@ class Subscription(models.Model):
 
 # }}}
 
+# {{{ less-frequently transmitted metadata
+
+class UserInfo(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    user = models.ForeignKey(User, unique=True)
+    public_key = models.CharField(max_length=5000, unique=True)
+    location = models.CharField(max_length=200)
+    comment = models.CharField(max_length=500)
+    received_messages = models.ManyToManyField(ReceivedMessage)
+    # others: interests, birthday, picture
+
+    class Admin:
+        pass
+# }}}
+
 # {{{ uncategorized
 
 # class ReceivedMessage(models.Model):
