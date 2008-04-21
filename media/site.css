@@ -64,6 +64,10 @@ pre {
 	white-space: pre;
 }
 
+strong {
+	font-weight: bold;
+}
+
 a {
 	color: blue;
 	text-decoration: none;
@@ -75,15 +79,15 @@ a:hover {
 
 
 /*************** Home Auth ***************/
-#message-actions li {
+#conversation-actions li {
 	display: inline;
 }
 
-#message-list li:first-child {
+#conversation-list li:first-child {
 	border-top: 1px solid lightgray;
 }
 
-#message-list li {
+#conversation-list li {
 	border-bottom: 1px solid lightgray;
 }
 

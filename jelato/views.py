@@ -1,5 +1,6 @@
 from datetime import datetime
 import httplib2
+import simplejson
 
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -9,22 +10,21 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
-from jelato.models import ReceivedMessage
+from jelato.models import Datum
 from jelato.models import UserInfo
 import utils
 
 
 def home(request):
     if request.user.is_authenticated():
-        messages = _get_user_profile(request.user).received_messages \
-                    .filter(reply_for='') \
-                    .order_by('-time_sent')
+        envelopes = request.user.envelope_set \
+                    .order_by('-ctime')
         subscription_posts = fetch_subscription_posts(
             [s.uri for s in request.user.subscription_set.all()])
         return render_to_response(
             'jelato/home_auth.html',
             {
-                'messages': messages,
+                'conversations': [envelope.carries for envelope in envelopes],
                 'subscription_posts': subscription_posts
             },
             context_instance=RequestContext(request))
@@ -57,38 +57,55 @@ def post_office(request):
     uuid = request.META['HTTP_X_JELATO_UUID']
     content_type = request.META['CONTENT_TYPE']
     sender_uri = request.META['HTTP_X_JELATO_SENDER']
-    reply_for = request.META['HTTP_X_JELATO_REPLY_FOR']
-    recipients = request.META['HTTP_X_JELATO_RECIPIENTS'].split(';')
+    replies_to = request.META['HTTP_X_JELATO_REPLIES_TO']
+    recipients_to = request.META['HTTP_X_JELATO_RECIPIENTS_TO']
+    recipients_cc = request.META['HTTP_X_JELATO_RECIPIENTS_CC']
+    recipients_bcc = request.META['HTTP_X_JELATO_RECIPIENTS_BCC']
     content = request.raw_post_data
     
     print 'Post office received this message:'
-    print ' Recipients: ' + str(recipients)
+    print ' Recipients To: ' + recipients_to
+    print ' Recipients CC: ' + recipients_cc
+    print ' Recipients BCC: ' + recipients_bcc
     print ' UUID: ' + uuid
     print ' Content type: ' + content_type
     print ' Sender URI: ' + sender_uri
-    print ' Reply for: ' + reply_for
+    print ' Replies for: ' + replies_to
     print ' Content: "%s"' % content
     
-    received_message = ReceivedMessage.objects.create(
-        content=content,
-        uuid=uuid,
-        content_type=content_type,
-        sender_uri=sender_uri,
-        time_sent=datetime.utcnow(),
-        reply_for=reply_for)
-    
-    for recipient_username in recipients:
-        try:
-            user = User.objects.get(username=recipient_username)
-        except User.DoesNotExist:
-            print 'Could not find user: ' + recipient_username
-        else:
-            _get_user_profile(user).received_messages.add(received_message)
+    try:
+        message = _make_message(
+            content=content,
+            content_type=content_type,
+            encoding='utf-8',
+            replies_to=replies_to,
+            uuid=uuid)
+        
+        # FIXME: Do not hard code server name
+        SERVER_NAME='localhost:8000'
+        all_recipients = simplejson.loads(recipients_to) + simplejson.loads(recipients_cc) + simplejson.loads(recipients_bcc)
+        all_addresses = [Address(recipient) for recipient in all_recipients]
+        addresses_for_here = [addr for addr in all_addresses if addr.server == SERVER_NAME]
+        usernames_for_here = [addr.username for addr in addresses_for_here]
+        for recipient_username in usernames_for_here:
+            try:
+                user = User.objects.get(username=recipient_username)
+            except User.DoesNotExist:
+                continue
+            envelope = _make_envelope(
+                user,
+                froms=Address(sender_uri),
+                tos=[Address(addr) for addr in simplejson.loads(recipients_to)],
+                ccs=[Address(addr) for addr in simplejson.loads(recipients_cc)],
+                bccs=[Address(addr) for addr in simplejson.loads(recipients_bcc)], # FIXME: Keep only recipient address
+                carries=message)
+    except Exception, e:
+        print 'Receive exception: ' + str(e)
     return HttpResponse('TODO', status=201)
 
 def public_messages(request, username):
     public_messages = User.objects.get(username=username).sentmessage_set.filter(is_public=True).order_by('-time_sent')
-    server_and_port = request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT']
+    server_and_port = request.META['SERVER_NAME'] + ':' + request.META['server']
     return render_to_response(
         'jelato/feeds/public_messages.html',
         {
@@ -99,23 +116,117 @@ def public_messages(request, username):
         context_instance=RequestContext(request),
         mimetype='application/atom+xml')
 
+
+class Address(object):
+    def __init__(self, address):
+        (self.server, self.username) = normalized_address(address).split('/')
+        
+    def __str__(self):
+        return self.uri_format()
+        
+    def uri_format(self):
+        return self.server + '/' + self.username
+        
+    def email_format(self):
+        return self.username + '@' + self.server
+
+def normalized_address(address):
+    """
+    Normalize an address to be in someserver.com/username format.
+    
+    The input address may be in either of these formats:
+    someserver.com/username
+    username@someserver.com
+    
+    """
+    if '@' not in address:
+        return address
+    
+    (username, server) = address.split('@')
+    return server + '/' + username
+
+def addresses_as_tuple(addresses_string):
+    """
+    Parse a string of addresses into a tuple of Address objects.
+    
+    The addresses are separated by semicolons, and each address can be in
+    either of these formats:
+    someserver.com/username
+    username@someserver.com
+    
+    """
+    if addresses_string:
+        addresses_string = addresses_string.strip()
+    if not addresses_string:
+        return ()
+    
+    addresses = [addr.strip() for addr in addresses_string.split(';')]
+    return tuple([Address(addr) for addr in addresses])
+    
+def _make_address(server_name, server_port, username):
+    return Address(server_name + ':' + server_port + '/' + username)
+
+def _make_message(content, content_type, encoding, replies_to=None, uuid=None):
+    if uuid is None:
+        uuid=utils.uuid()
+    if replies_to is None:
+        replies_to = ''
+    
+    try:    
+        datum = Datum.objects.get(uuid=uuid)
+    except Datum.DoesNotExist:
+        datum = Datum.objects.create(
+            uuid=uuid,
+            content=content,
+            content_type=content_type,
+            encoding=encoding,
+            replies_to=replies_to)
+    
+    return datum
+
+def _make_envelope(user, froms, tos, ccs, bccs, carries):
+    return user.envelope_set.create(
+        froms=str(froms),
+        tos=simplejson.dumps([str(addr) for addr in tos]),
+        ccs=simplejson.dumps([str(addr) for addr in ccs]),
+        bccs=simplejson.dumps([str(addr) for addr in bccs]),
+        carries=carries)
+
 @login_required
 def send_message(request, is_public):
-    if request.method == 'GET':
-        return render_to_response(
-            'jelato/send_message.html',
-            { 'is_public': is_public },
-            context_instance=RequestContext(request))
-    
-    content = request.POST['content']
-    
-    if is_public:
-        recipients = None
-    else:
-        recipients = request.POST['recipients'].split(';')
-    
-    _send_message_real(request.user, request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT'], '', content, recipients)
-    return HttpResponseRedirect('/')
+    if request.method == 'POST':
+        content = request.POST['content']
+        if is_public:
+            recipients_to = []
+            recipients_cc = []
+            recipients_bcc = []
+        else:
+            print 'to: ' + str(request.POST['recipients_to'])
+            recipients_to = addresses_as_tuple(request.POST['recipients_to'])
+            recipients_cc = addresses_as_tuple(request.POST['recipients_cc'])
+            recipients_bcc = addresses_as_tuple(request.POST['recipients_bcc'])
+            
+        sender_address = _make_address(
+            server_name=request.META['SERVER_NAME'],
+            server_port=request.META['SERVER_PORT'],
+            username=request.user.username)
+        message = _make_message(
+            content=content,
+            content_type='text/html',
+            encoding='utf-8')
+        envelope = _make_envelope(
+            request.user,
+            froms=sender_address,
+            tos=recipients_to,
+            ccs=recipients_cc,
+            bccs=recipients_bcc,
+            carries=message)
+        _send_envelope(envelope)
+        return HttpResponseRedirect('/')
+    return render_to_response(
+        'jelato/send_message.html',
+        { 'is_public': is_public },
+        context_instance=RequestContext(request))
 
 @login_required
 def sent_messages(request):
@@ -157,34 +268,62 @@ def contacts(request):
         context_instance=RequestContext(request))
     
 @login_required
-def message_view(request, message_uuid):
-    profile = request.user.get_profile()
-    try:
-        message = profile.received_messages.get(uuid=message_uuid)
-    except ReceivedMessage.DoesNotExist:
-        print 'Message does not exist for the user'
-        return HttpResponseRedirect('/')
-        
-    messages = get_thread(message)
+def conversation_view(request, message_uuid):
+    envelope = request.user.envelope_set.get(carries__uuid=message_uuid)
+    envelope_list = get_conversation_list(request.user, envelope)
+    print len(envelope_list)
+    #TODO: sort messages
+    messages = [e.carries for e in envelope_list]
     
-    message.is_read = True
-    message.save()
+    # TODO: mark as read
+    #envelope.is_read = True
+    #envelope.save()
     return render_to_response(
-        'jelato/message_view.html',
+        'jelato/conversation_view.html',
         { 'messages': messages },
         context_instance=RequestContext(request))
-        
+
+
+
 @login_required
 def message_reply(request, message_uuid):
-    orig_message = ReceivedMessage.objects.get(uuid=message_uuid)
+    orig_envelope = request.user.envelope_set.get(carries__uuid=message_uuid)
     if request.method == 'POST':
         reply_content = request.POST['reply_content']
-        _send_message_real(request.user, request.META['SERVER_NAME'] + ':' + request.META['SERVER_PORT'], message_uuid, reply_content, [orig_message.sender_uri[7:]], False)
-    
+        
+        sender_address = _make_address(
+            server_name=request.META['SERVER_NAME'],
+            server_port=request.META['SERVER_PORT'],
+            username=request.user.username)
+            
+        orig_tos=simplejson.loads(orig_envelope.tos)
+        if sender_address.uri_format() in orig_tos:
+            orig_tos.remove(sender_address.uri_format())
+        orig_ccs=simplejson.loads(orig_envelope.ccs)
+        if sender_address.uri_format() in orig_ccs:
+            orig_ccs.remove(sender_address.uri_format())
+        orig_tos.append(orig_envelope.froms)
+        orig_tos = [Address(addr) for addr in orig_tos]
+        orig_ccs = [Address(addr) for addr in orig_ccs]
+        
+        message = _make_message(
+            content=reply_content,
+            content_type='text/html',
+            encoding='utf-8',
+            replies_to=message_uuid)
+        envelope = _make_envelope(
+            request.user,
+            froms=sender_address,
+            tos=orig_tos,
+            ccs=orig_ccs,
+            bccs=[],
+            carries=message)
+        _send_envelope(envelope)
+        return HttpResponseRedirect('/')
     return render_to_response(
         'jelato/message_reply.html',
         {
-            'orig_message': orig_message
+            'envelope': orig_envelope
         },
         context_instance=RequestContext(request))
     
@@ -212,83 +351,55 @@ def fetch_subscription_posts(uri_list):
             post = PublicPost(entry['updated'], entry['summary'], entry['link'])
             posts.append(post)
     return posts
-    
-def get_thread(first_message):
-    from models import SentMessage
-    replies = ReceivedMessage.objects.filter(reply_for=first_message.uuid)
-    replies2 = SentMessage.objects.filter(reply_for=first_message.uuid)
-    both = []
-    for r in replies:
-        both.append(r)
-    for r in replies2:
-        both.append(r)
-    if len(both) == 0:
-        return [first_message]
-    
-    all_replies = [first_message]
-    for reply in both:
-        all_replies.extend(get_thread(reply))
-        
-    return all_replies
-    
-def _send_message_real(cur_user, server_port, reply_for_uuid, content, recipients):
-    uuid = utils.uuid()
-    print str(type(uuid))
-    is_public = (recipients is None)
-    sent_message = cur_user.sentmessage_set.create(
-        uuid=uuid,
-        content_type='placeholder',
-        content=content,
-        time_sent=datetime.utcnow(),
-        reply_for='',
-        is_public=is_public)
-    
-    if not is_public:
-        server_map = {}
-        
-        # Each recipient is in server:port/username format.
-        for recipient in recipients:
-            print 'Recipient: ' + recipient
-            (server, username) = recipient.split('/')
-            if not server_map.has_key(server):
-                server_map[server] = []
-            server_map[server].append(username)
-            
-        for server in server_map.keys():
-            recip_list = ';'.join(server_map[server])
-            http = httplib2.Http()
-            url = 'http://' + server + '/post-office/';
-            
-            sender_uri = 'http://' + server_port + \
-                    '/' + cur_user.username
+
+
+def get_conversation_list(user, root_envelope):
+    envelope_list = [root_envelope]
+    children = user.envelope_set.filter(carries__replies_to=root_envelope.carries.uuid).distinct()
+    for child in children:
+        envelope_list.extend(get_conversation_list(user, child))
+    return envelope_list
+
+class DestinationRecord(object):
+    def __init__(self):
+        self.to = []
+        self.cc = []
+        self.bcc = []
+
+def _send_envelope(envelope):
+    can_send = (envelope.tos or envelope.ccs or envelope.bccs)
+    if can_send:
+        servers = set()
+        all_addresses = simplejson.loads(envelope.tos) + simplejson.loads(envelope.ccs) + simplejson.loads(envelope.bccs)
+        all_addresses = [Address(addr) for addr in all_addresses]
+        for recipient in all_addresses:
+            servers.add(recipient.server)
+
+        for server in servers:
             print 'Send to server %s:' % server
-            print ' UUID: ' + uuid
-            print ' Sender URI: ' + sender_uri
-            print ' Recipients: ' + recip_list
-            print ' Content: "%s"' % content
+            print ' UUID: ' + envelope.carries.uuid
+            print ' Sender URI: ' + envelope.froms
+            print ' To: ' + envelope.tos
+            print ' CC: ' + envelope.ccs
+            print ' BCC: ' + envelope.bccs
+            print ' Content: "%s"' % envelope.carries.content
             
             headers = {
                 'Content-type': 'application/xml',
-                'X-Jelato-UUID': uuid,
-                'X-Jelato-Sender': sender_uri,
-                'X-Jelato-Reply-For': reply_for_uuid,
-                'X-Jelato-Recipients': recip_list
+                'X-Jelato-UUID': envelope.carries.uuid,
+                'X-Jelato-Sender': envelope.froms,
+                'X-Jelato-Replies-To': envelope.carries.replies_to,
+                'X-Jelato-Recipients-To': envelope.tos,
+                'X-Jelato-Recipients-CC': envelope.ccs,
+                'X-Jelato-Recipients-BCC': envelope.bccs, # TODO: maybe restrict to per-server
             }
+            
+            http = httplib2.Http()
+            post_office_url = 'http://' + server + '/post-office/';
             (response, content) = http.request(
-                url,
+                post_office_url,
                 'POST',
-                content,
+                envelope.carries.content,
                 headers=headers)
 
-def _get_user_profile(user):
-    try:
-        profile = user.get_profile()
-    except UserInfo.DoesNotExist:
-        return UserInfo.objects.create(
-            user=user,
-            public_key=utils.uuid(), # FIXME: Temporarily using UUID
-            location='',
-            comment='')
-    else:
-        return profile
 
