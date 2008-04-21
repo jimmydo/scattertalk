@@ -61,20 +61,17 @@ class GroupApply(models.Model):
 
 # {{{ underlying model(s) for transmitted metadata
 class Envelope(models.Model):
-    # these require reification: connections to other users (i.e. URI
-    # and human-readable names) also could exist wrapped inside Datum.
+    in_datum = models.ForeignKey(Datum, unique=True)
 
-    # One that that is for sure is we don't support aggregates.
-
-    froms = models.TextField()
-    tos = models.TextField()
-    ccs = models.TextField()
-    carries = models.CharField(max_length=UUID_LENGTH)
+    froms = models.ForeignKey(Group, related_name='from_set')
+    tos = models.ForeignKey(Group, related_name='to_set')
+    ccs = models.ForeignKey(Group, related_name='cc_set')
+    carries = models.ForeignKey(Datum, related_name='carries')
 
     # We may want to doubly link this information, or otherwise make
     # concessions for performance.
 
-    replies_to = models.CharField(max_length=UUID_LENGTH)
+    replies_to = models.ForeignKey(Group, related_name='replyto_set')
 
 # }}}
 
