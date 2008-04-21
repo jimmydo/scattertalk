@@ -72,9 +72,9 @@ class GroupApply(models.Model):
     """
     in_datum = models.ForeignKey(Datum, unique=True)
 
-    # to_datum: the thing being tagged
+    # to_datum: the thing included into the group
     to_datum = models.ForeignKey(Datum, related_name='applied_groups')
-    tag = models.ForeignKey(Tag)
+    group = models.ForeignKey(Group)
 
 # }}}
 
