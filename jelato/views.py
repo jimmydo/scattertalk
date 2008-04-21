@@ -116,56 +116,6 @@ def public_messages(request, username):
         context_instance=RequestContext(request),
         mimetype='application/atom+xml')
 
-
-class Address(object):
-    def __init__(self, address):
-        (self.server, self.username) = normalized_address(address).split('/')
-        
-    def __str__(self):
-        return self.uri_format()
-        
-    def uri_format(self):
-        return self.server + '/' + self.username
-        
-    def email_format(self):
-        return self.username + '@' + self.server
-
-def normalized_address(address):
-    """
-    Normalize an address to be in someserver.com/username format.
-    
-    The input address may be in either of these formats:
-    someserver.com/username
-    username@someserver.com
-    
-    """
-    if '@' not in address:
-        return address
-    
-    (username, server) = address.split('@')
-    return server + '/' + username
-
-def addresses_as_tuple(addresses_string):
-    """
-    Parse a string of addresses into a tuple of Address objects.
-    
-    The addresses are separated by semicolons, and each address can be in
-    either of these formats:
-    someserver.com/username
-    username@someserver.com
-    
-    """
-    if addresses_string:
-        addresses_string = addresses_string.strip()
-    if not addresses_string:
-        return ()
-    
-    addresses = [addr.strip() for addr in addresses_string.split(';')]
-    return tuple([Address(addr) for addr in addresses])
-    
-def _make_address(server_name, server_port, username):
-    return Address(server_name + ':' + server_port + '/' + username)
-
 def _make_message(content, content_type, encoding, replies_to=None, uuid=None):
     if uuid is None:
         uuid=utils.uuid()
@@ -206,10 +156,7 @@ def send_message(request, is_public):
             recipients_cc = addresses_as_tuple(request.POST['recipients_cc'])
             recipients_bcc = addresses_as_tuple(request.POST['recipients_bcc'])
             
-        sender_address = _make_address(
-            server_name=request.META['SERVER_NAME'],
-            server_port=request.META['SERVER_PORT'],
-            username=request.user.username)
+        sender_address = utils.make_address(request, request.user)
         message = _make_message(
             content=content,
             content_type='text/html',
@@ -291,10 +238,7 @@ def message_reply(request, message_uuid):
     if request.method == 'POST':
         reply_content = request.POST['reply_content']
         
-        sender_address = _make_address(
-            server_name=request.META['SERVER_NAME'],
-            server_port=request.META['SERVER_PORT'],
-            username=request.user.username)
+        sender_address = utils.make_address(request, request.user)
             
         orig_tos=simplejson.loads(orig_envelope.tos)
         if sender_address.uri_format() in orig_tos:
