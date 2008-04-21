@@ -36,25 +36,6 @@ class Datum(models.Model):
 
 # }}}
 
-# {{{ underlying model(s) for transmitted metadata
-class Envelope(models.Model):
-    # these require reification: connections to other users (i.e. URI
-    # and human-readable names) also could exist wrapped inside Datum.
-
-    # One that that is for sure is we don't support aggregates.
-
-    froms = models.TextField()
-    tos = models.TextField()
-    ccs = models.TextField()
-    carries = models.CharField(max_length=UUID_LENGTH)
-
-    # We may want to doubly link this information, or otherwise make
-    # concessions for performance.
-
-    replies_to = models.CharField(max_length=UUID_LENGTH)
-
-# }}}
-
 # {{{ To handle grouping of Datum
 
 class Group(models.Model):
@@ -75,6 +56,25 @@ class GroupApply(models.Model):
     # to_datum: the thing included into the group
     to_datum = models.ForeignKey(Datum, related_name='applied_groups')
     group = models.ForeignKey(Group)
+
+# }}}
+
+# {{{ underlying model(s) for transmitted metadata
+class Envelope(models.Model):
+    # these require reification: connections to other users (i.e. URI
+    # and human-readable names) also could exist wrapped inside Datum.
+
+    # One that that is for sure is we don't support aggregates.
+
+    froms = models.TextField()
+    tos = models.TextField()
+    ccs = models.TextField()
+    carries = models.CharField(max_length=UUID_LENGTH)
+
+    # We may want to doubly link this information, or otherwise make
+    # concessions for performance.
+
+    replies_to = models.CharField(max_length=UUID_LENGTH)
 
 # }}}
 
