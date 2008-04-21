@@ -21,7 +21,6 @@ class Datum(models.Model):
     uuid = models.CharField(max_length=UUID_LENGTH, unique=True)
     content_type = models.CharField(max_length=100)
     encoding = models.CharField(max_length=32)
-    content = models.TextField()
     ctime = models.DateTimeField(auto_now_add = True)
     mtime = models.DateTimeField(auto_now = True)
 
@@ -66,6 +65,12 @@ class GroupApply(models.Model):
 # }}}
 
 # {{{ underlying model(s) for transmitted metadata
+
+class Message(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+
+    content = models.TextField()
+
 class Envelope(models.Model):
     in_datum = models.ForeignKey(Datum, unique=True)
 
