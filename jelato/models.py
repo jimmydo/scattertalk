@@ -102,6 +102,14 @@ class Contact(models.Model):
     class Admin:
         pass
 
+class Subscription(models.Model):
+    in_datum = models.ForeignKey(Datum, unique=True)
+    user = models.ForeignKey(User)
+    uri = models.CharField(max_length=CONTACT_URI_LENGTH)
+
+    class Admin:
+        pass
+
 # }}}
 
 # {{{ uncategorized
